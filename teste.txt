@@ -1,0 +1,4 @@
+criar tarefa 1 finalizar projeto de logcomp 13/05/2025
+excluir tarefa 1
+criar tag urgente
+gerar relatorio
