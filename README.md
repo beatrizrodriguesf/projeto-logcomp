@@ -1,22 +1,41 @@
-# projeto-logcomp
+# Projeto de Lógica da Computação
 
-Linguagem para criação de lista de tarefas
+### Linguagem para criação de lista de tarefas
 
-EBNF:
+### EBNF:
 
-ACAO = criar | alterar | looping |  condicional | relatorio  
-CRIAR = "criar", tarefa, descricao, [tag], data  
-ALTERAR = "excluir" | "marcar" | "desmarcar", tarefa  
-LOOPING = "enquanto", expressaoData, criar    
-CONDICIONAL = "se", expressaoData | expressaoTag, "exibir" | "ocultar"
-EXPRESSAODATA = "data", "<" | ">" | "=", data, ["e" | "ou" EXPRESSAODATA]  
-EXPRESSAOTAG = "tag" "=" tag ["e" | "ou" EXPRESSAOTAG]  
-RELATORIO = "gerar relatório"  
-DESCRICAO = LETTER, { LETTER | DIGIT } ;  
-TAG = LETTER, { LETTER | DIGIT | "_" } ;  
-TAREFA = DIGIT, { DIGIT } ;  
-LETTER = ( a | ... | z | A | ... | Z ) ;  
-DIGIT = ( 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0 ) ;  
-DATA = dia "/" mes "/" ano ;  
-DIA = "01" | "02" | "03" | ... | "31" ;  
-MES = "01" | "02" | "03" | ... | "12" ;  
+#### Tokens:
+
+```
+TAREFA = "0"…"9", {"0"…"9"}  
+DESCRICAO = WORD WORD {WORD}  
+WORD = LETTER, {LETTER}  
+TAG = LETTER, {{"_"} LETTER | DIGIT}  
+DATA = ("1"…"31"), "/", ("1"…"12"), "/", ("2025"…"2030") 
+```
+
+#### Criação e alteração de tarefas na agenda:
+
+```
+CRIAR = "criar tarefa", TAREFA, DESCRICAO, [TAG], DATA  
+ACAO = "excluir tarefa" | "marcar tarefa" | "desmarcar tarefa"  
+ALTERAR = ACAO, TAREFA 
+REPETICAO = "enquanto" EXPRESSAODATA (CRIAR | ALTERAR) 
+```
+
+#### Criação e alteração de tags na agenda:
+
+```
+CRIAR_TAG = "criar tag" TAG  
+EXCLUIR_TAG = "excluir tag" TAG
+```
+
+#### Alterar relatório:
+Comandos para escolher o que vai ser exibido ao gerar o relatório, tags específicas, período de tempo das tarefas
+
+```
+CONDICIONAL = "se", (EXPRESSAODATA | EXPRESAOTAG), { ("&" | "|"), (EXPRESSAODATA | EXPRESAOTAG) }, "exibir"  
+EXPRESSAODATA = "data", ("<" | ">" | "="), DATA, { ("&" | "|"), EXPRESSAODATA }  
+EXPRESSAOTAG = "tag", ("=" | "!="), { ("&" | "|"), EXPRESSAOTAG }  
+RELATORIO = "gerar", "relatorio"
+```
