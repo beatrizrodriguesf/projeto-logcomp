@@ -1,118 +1,93 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "ast.h"
 
-void yyerror(const char *s);
+ASTNode* root;
+
 int yylex(void);
+void yyerror(const char* s) {
+    fprintf(stderr, "Erro: %s\n", s);
+}
 %}
 
 %union {
     int ival;
-    char *sval;
+    ASTNode* node;
 }
 
-%token <sval> STR ID
-%token <ival> NUM
-%token CRIAR TAREFA_KW TAG_KW EXCLUIR MARCAR DESMARCAR GERAR RELATORIO
-%token SE EXIBIR DATA_KW
-%token EQ NEQ LT GT AND OR
+%token ID DESCRIPTION STR_DATE TAG TASK
+%token NAME STRING DATE
+%token NUMBER
+
+%token CREATE EDIT DELETE SHOW
+%token IF WEEKLY MONTHLY
+
+%token OR, AND, EQ, GT, LT
+
+%left OR
+%left AND
+%left EQ GT LT
+
+%type <node> comando
+// %type <str> expressao_data expressao_tag
 
 %%
 
-programa:
-      comando_list
-    ;
-
-comando_list:
-      comando
-    | comando_list comando
+input:
+    /* vazio */
+    | input comando '\n'
     ;
 
 comando:
-      criacao_tarefa
-    | alteracao_tarefa
-    | criacao_tag
-    | exclusao_tag
-    | relatorio
+      CREATE TAG NAME                   {   char* info = $3;
+                                            $$ = create_node(CREATE_TAG, $3, NULL, NULL) }
+
+    | DELETE TAG NAME                   {   char* info = $3;
+                                            $$ = create_node(DELETE_TAG, $3, NULL, NULL)}
+
+    | CREATE TASK ID STRING DATE        {   node_left = create_node(STRING, $4, NULL, NULL);
+                                            node_right = create_node(DATE, $5, NULL, NULL); 
+                                            $$ = create_node(CREATE_TASK, $3, node_left, node_right)}
+
+    | CREATE time TASK STRING DATE DATE {   node_left = create_node(STRING, $4, NULL, NULL);
+                                            node_right = create_node(DATE, $5, NULL, NULL);
+                                            node_task = create_node(CREATE_TASK, $3, node_left, node_right);
+                                            node_end = create_node(DATE, $6, NULL, NULL);
+                                            $$ = create_node(REPEAT, $2, node_end, node_task) }
+
+    | DELETE TASK ID                    { $$ = create_node(DELETE_TASK, $3, NULL, NULL) }
+
+    | SHOW TASK                         { $$ = create_node(SHOW_TAG, "show_tag", NULL, NULL) }
+    | SHOW TASK expressao_data          { $$ = create_node(SHOW_TASK, "filter_data", $3, NULL) }
+    | SHOW TASK expressao_tag           { $$ = create_node(SHOW_TASK, "filter_tag", $3, NULL) }
+
+    | SHOW TAG                          { $$ = create_node(SHOW_TASK, "all", NULL, NULL) }
     ;
 
-criacao_tarefa:
-      CRIAR TAREFA_KW NUM descricao_opt tag_opt data
+expressao_data:
+      STR_DATE comp DATE                              { /* Ex: data == "10/10" */ }
+    | STR_DATE comp DATE operador_logico expressao_data { /* Ex: data > "01/01" && data < "12/12" */ }
     ;
 
-descricao_opt:
-      ID ID descricao_cont
+expressao_tag:
+      TAG EQ NAME                                     { /* Ex: tag == importante */ }
+    | TAG EQ NAME OR expressao_tag                    { /* Ex: tag == urgente || tag == importante */ }
     ;
 
-descricao_cont:
-      /* vazio */
-    | descricao_cont ID
+time:
+    WEEKLY | MONTHLY;
+
+comp:
+      EQ | LT | GT
     ;
 
-tag_opt:
-      /* vazio */
-    | TAG_KW ID
-    ;
-
-data:
-      NUM '/' NUM '/' NUM
-    ;
-
-alteracao_tarefa:
-      acao TAREFA_KW NUM
-    ;
-
-acao:
-      EXCLUIR
-    | MARCAR
-    | DESMARCAR
-    ;
-
-criacao_tag:
-      CRIAR TAG_KW ID
-    ;
-
-exclusao_tag:
-      EXCLUIR TAG_KW ID
-    ;
-
-relatorio:
-      GERAR RELATORIO condicional_opt
-    ;
-
-condicional_opt:
-      /* vazio */
-    | SE expressao_logica EXIBIR
-    ;
-
-expressao_logica:
-      expressao
-    | expressao_logica AND expressao
-    | expressao_logica OR expressao
-    ;
-
-expressao:
-      DATA_KW comparador data
-    | TAG_KW comparador
-    ;
-
-comparador:
-      EQ
-    | NEQ
-    | LT
-    | GT
+operador_logico:
+      AND | OR
     ;
 
 %%
 
-int main(void) {
-    if (yyparse() == 0)
-        printf("Entrada aceita com sucesso!\n");
-    else
-        printf("Erro de sintaxe!\n");
-    return 0;
-}
-
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro de sintaxe: %s\n", s);
+    fprintf(stderr, "Erro: %s\n", s);
 }
